@@ -49,6 +49,25 @@ where
     }
 }
 
+pub enum StatType {
+    Positive,
+    Negative,
+    Ratio
+}
+
+pub fn stat<T>(stat: T, _type: StatType) -> String
+where 
+    T: ToPrimitive + 'static 
+{
+    let formatted = num(stat);
+
+    match _type {
+        StatType::Positive => format!("<green>{formatted}</green>"),
+        StatType::Negative => format!("<red>{formatted}</red>"),
+        StatType::Ratio => format!("<gold>{formatted}</gold>"),
+    }
+}
+
 pub fn load_image(path: &str) -> Vec<u8> {
     fs::read(path).expect("Failed to load image")
 }
