@@ -173,7 +173,7 @@ impl Canvas {
 
     #[inline]
     pub fn render_content_boxes(&mut self, boxes: Vec<ContentBox>) {
-        for box_ in boxes {
+        for mut box_ in boxes {
             box_.render(self);
         }
     }
