@@ -8,9 +8,10 @@ pub struct ContentBox {
     y: f32,
     width: f32,
     height: f32,
-    shapes: Vec<Shape>,
+    shapes: Vec<ShapeContent>,
     texts: Vec<TextContent>,
     images: Vec<ImageContent>,
+    tables: Vec<TableContent>,
     padding: f32,
 }
 
@@ -24,6 +25,7 @@ impl ContentBox {
             shapes: Vec::new(),
             texts: Vec::new(),
             images: Vec::new(),
+            tables: Vec::new(),
             padding: 0.0,
         }
     }
@@ -34,9 +36,9 @@ impl ContentBox {
     }
 
     pub fn with_background(mut self, color: Color) -> Self {
-        let background = Shape {
+        let background = ShapeContent {
             color,
-            ..Shape::rounded_rect(0.0, 0.0, self.width, self.height, 5.0, 5.0)
+            ..ShapeContent::rounded_rect(0.0, 0.0, self.width, self.height, 5.0, 5.0)
         };
 
         self.shapes.insert(0, background);
@@ -44,13 +46,13 @@ impl ContentBox {
     }
 
     pub fn with_border(mut self, color: Color) -> Self {
-        let border = Shape {
+        let border = ShapeContent {
             style: PaintStyle::Stroke,
             color,
-            ..Shape::rounded_rect(0.0, 0.0, self.width, self.height, 5.0, 5.0)
+            ..ShapeContent::rounded_rect(0.0, 0.0, self.width, self.height, 5.0, 5.0)
         };
 
-        self.shapes.insert(1, border);
+        self.shapes.push(border);
         self
     }
 
@@ -65,17 +67,40 @@ impl ContentBox {
         self
     }
 
-    pub fn add_shape(mut self, shape: Shape) -> Self {
-        self.shapes.push(shape);
+    pub fn add_shape(mut self, shape: ShapeContent) -> Self {
+        let shape_with_padding = ShapeContent {
+            x: shape.x + self.padding,
+            y: shape.y + self.padding,
+            ..shape
+        };
+        
+        self.shapes.push(shape_with_padding);
         self
     }
     
     pub fn add_image(mut self, image: ImageContent) -> Self {
-        self.images.push(image);
+        let image_with_padding = ImageContent {
+            x: image.x + self.padding,
+            y: image.y + self.padding,
+            ..image
+        };
+        
+        self.images.push(image_with_padding);
         self
     }
 
-    pub fn render(&self, canvas: &mut Canvas) {
+    pub fn add_table(mut self, table: TableContent) -> Self {
+        let table_with_padding = TableContent {
+            x: table.x + self.padding,
+            y: table.y + self.padding,
+            ..table
+        };
+        
+        self.tables.push(table_with_padding);
+        self
+    }
+    
+    pub fn render(&mut self, canvas: &mut Canvas) {
         canvas.save();
         canvas.translate(self.x, self.y);
 
@@ -90,10 +115,14 @@ impl ContentBox {
             image.render(canvas, inner_width, inner_height);
         }
 
-        for text in &self.texts {
+        for text in &mut self.texts {
             text.render(canvas, inner_width, inner_height);
         }
 
+        for table in &self.tables {
+            table.render(canvas);
+        }
+        
         canvas.restore();
     }
 }
@@ -113,7 +142,7 @@ pub enum VerticalAlignment {
 }
 
 
-/// Shape
+/// ShapeContent
 pub enum ShapeType {
     Rectangle,
     Circle,
@@ -121,7 +150,7 @@ pub enum ShapeType {
     RoundedRectangle,
 }
 
-pub struct Shape {
+pub struct ShapeContent {
     pub shape_type: ShapeType,
     pub x: f32,
     pub y: f32,
@@ -133,7 +162,7 @@ pub struct Shape {
     pub ry: f32,
 }
 
-impl Shape {
+impl ShapeContent {
     pub fn rect(x: f32, y: f32, width: f32, height: f32) -> Self {
         Self {
             shape_type: ShapeType::Rectangle,
@@ -220,13 +249,14 @@ impl Shape {
 }
 
 
-/// Images
+/// ImageContent
 pub struct ImageContent {
     pub bytes: Vec<u8>,
     pub x: f32,
     pub y: f32,
     pub width: f32,
     pub height: f32,
+    pub scale: f32,
     pub alignment: Alignment,
     pub vertical_alignment: VerticalAlignment
 }
@@ -239,6 +269,7 @@ impl ImageContent {
             y,
             width,
             height,
+            scale: 1.0,
             alignment: Alignment::Left,
             vertical_alignment: VerticalAlignment::Top,
         }
@@ -254,9 +285,17 @@ impl ImageContent {
         self
     }
     
+    pub fn with_scale(mut self, scale: f32) -> Self {
+        self.scale = scale;
+        self
+    }
+    
     pub fn render(&self, canvas: &mut Canvas, inner_width: f32, inner_height: f32) {
         let image = Image::from_encoded(Data::new_copy(&self.bytes)).expect("Failed to decode image.");
-
+        
+        canvas.save();
+        canvas.scale(self.scale, self.scale);
+        
         let adjusted_x = match self.alignment {
             Alignment::Left => self.x,
             Alignment::Center => (inner_width - image.width() as f32) / 2.0 + self.x,
@@ -272,8 +311,10 @@ impl ImageContent {
                 self.y + inner_height - (image.height() as f32),
         };
         
-        let position = Point::new(adjusted_x, adjusted_y);
+        let position = Point::new(adjusted_x / self.scale, adjusted_y / self.scale);
         canvas.draw_image(image, position);
+        
+        canvas.restore();
     }
 }
 
@@ -323,15 +364,26 @@ impl TextContent {
         self
     }
 
-    fn render(&self, canvas: &mut Canvas, inner_width: f32, inner_height: f32) {
+    fn render(&mut self, canvas: &mut Canvas, inner_width: f32, inner_height: f32) {
         let modified_text = COLOR_REGEX.replace_all(&self.text, "");
         let metrics = measure(&modified_text, self.size);
         let text_height = metrics.descent - metrics.ascent;
+        
+        let mut total_width = metrics.width;
+
+        // Decrease text size until the total width fits within max_width
+        while total_width > inner_width && self.size > 1.0 {
+            self.size -= 1.0;
+            total_width = measure(self.text.as_str(), self.size).width;
+            if total_width <= inner_width {
+                break;
+            }
+        }
 
         let adjusted_x = match self.alignment {
             Alignment::Left => self.x,
-            Alignment::Center => (inner_width - metrics.width) / 2.0 + self.x,
-            Alignment::Right => inner_width - metrics.width - self.x,
+            Alignment::Center => (inner_width - total_width) / 2.0 + self.x,
+            Alignment::Right => inner_width - total_width - self.x,
         };
 
         let adjusted_y = match self.vertical_alignment {
@@ -342,7 +394,98 @@ impl TextContent {
             VerticalAlignment::Bottom => 
                 self.y + inner_height - metrics.descent,
         };
-
+        
         canvas.draw_text(self.text.as_str(), adjusted_x, adjusted_y, self.size, self.shadow);
+    }
+}
+
+/// TableContent
+pub struct TableContent {
+    pub x: f32,
+    pub y: f32,
+    pub columns: usize,
+    pub rows: Vec<Vec<String>>,
+    pub cell_width: f32,
+    pub cell_height: f32,
+    pub border_color: Color,
+    pub text_size: f32,
+}
+
+// #[deprecated(note = "Incomplete. Should not be used.")]
+impl TableContent {
+    pub fn new(x: f32, y: f32, columns: usize, cell_width: f32, cell_height: f32) -> Self {
+        Self {
+            x,
+            y,
+            columns,
+            rows: Vec::new(),
+            cell_width,
+            cell_height,
+            border_color: Color::BLACK,
+            text_size: 16.0,
+        }
+    }
+    
+    pub fn with_border_color(mut self, color: Color) -> Self {
+        self.border_color = color;
+        self
+    }
+    
+    pub fn with_text_size(mut self, size: f32) -> Self {
+        self.text_size = size;
+        self
+    }
+    
+    pub fn add_row(mut self, row: Vec<String>) -> Self {
+        if row.len() == self.columns {
+            self.rows.push(row);
+        }
+        self
+    }
+    
+    pub fn render(&self, canvas: &mut Canvas) {
+        let mut y_offset = self.y;
+        
+        for row in &self.rows {
+            let mut x_offset = self.x;
+            
+            for cell in row {
+                if !cell.is_empty() {
+                    let border = ShapeContent {
+                        shape_type: ShapeType::Rectangle,
+                        x: x_offset,
+                        y: y_offset,
+                        width: self.cell_width,
+                        height: self.cell_height,
+                        color: self.border_color,
+                        style: PaintStyle::Stroke,
+                        rx: 0.0,
+                        ry: 0.0,
+                    };
+
+                    border.render(canvas);
+                } 
+                
+                let text_metrics = measure(cell, self.text_size);
+                let text_x = x_offset + (self.cell_width - text_metrics.width) / 2.0;
+                let text_y = y_offset + (self.cell_height - (text_metrics.descent - text_metrics.ascent));
+                
+                let mut text_content = TextContent {
+                    text: cell.clone(),
+                    x: x_offset,
+                    y: y_offset,
+                    size: self.text_size,
+                    shadow: false,
+                    alignment: Alignment::Center,
+                    vertical_alignment: VerticalAlignment::Middle,
+                };
+                
+                text_content.render(canvas, self.cell_width, self.cell_height);
+                
+                x_offset += self.cell_width;
+            }
+            
+            y_offset += self.cell_height;
+        }
     }
 }
