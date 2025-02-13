@@ -27,7 +27,7 @@ impl PlayerRenderService {
 
     /// Retrieves player render for the given Minecraft uuid.
     /// It first checks the cache, and if not found or expired, fetches fresh data from the API.
-    pub async fn get_player_data(&self, username: &str) -> Result<Vec<u8>, MinecraftError> {
+    pub async fn get_player_render(&self, username: &str) -> Result<Vec<u8>, MinecraftError> {
         if let Some(response) = self.cache.get(&username.to_string()).await {
             return Ok(response.clone());
         }
@@ -41,7 +41,7 @@ impl PlayerRenderService {
     async fn get_player_render_api(&self, id: &str) -> Vec<u8> {
         let url = create_url(id, PlayerOptions {
             player_type: PlayerType::Full,
-            size: Some(192.0),
+            size: Some(384.0),
             ..Default::default()
         });
         
