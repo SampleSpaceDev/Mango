@@ -9,6 +9,8 @@ pub struct Canvas {
     pub surface: Surface,
     pub path: Path,
     pub paint: Paint,
+    pub width: i32,
+    pub height: i32,
 }
 
 pub static MINECRAFT_TYPEFACE: Lazy<Typeface> = Lazy::new(|| {
@@ -39,6 +41,8 @@ impl Canvas {
             surface,
             path,
             paint,
+            width,
+            height,
         }
     }
 
@@ -153,7 +157,7 @@ impl Canvas {
         let position = Point::new(x, y);
         self.canvas().draw_image(&image, position, None);
     }
-
+    
     #[inline]
     pub fn stroke(&mut self) {
         self.paint.set_style(PaintStyle::Stroke);

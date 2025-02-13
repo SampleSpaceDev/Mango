@@ -12,6 +12,7 @@ pub struct ContentBox {
     texts: Vec<TextContent>,
     images: Vec<ImageContent>,
     tables: Vec<TableContent>,
+    content_boxes: Vec<ContentBox>,
     padding: f32,
 }
 
@@ -26,6 +27,7 @@ impl ContentBox {
             texts: Vec::new(),
             images: Vec::new(),
             tables: Vec::new(),
+            content_boxes: Vec::new(),
             padding: 0.0,
         }
     }
@@ -100,6 +102,30 @@ impl ContentBox {
         self
     }
     
+    pub fn add_content_box(mut self, _box: ContentBox) -> Self {
+        let x = _box.x + self.padding;
+        let y = _box.y + self.padding;
+        let box_with_padding = _box.set_position(x, y);
+        
+        self.content_boxes.push(box_with_padding);
+        self
+    }
+    
+    pub fn add_content_boxes(mut self, boxes: Vec<ContentBox>) -> Self {
+        for b in boxes {
+            self = self.add_content_box(b);
+        }
+        
+        self
+    }
+    
+    fn set_position(mut self, x: f32, y: f32) -> Self {
+        self.x = x;
+        self.y = y;
+        
+        self
+    }
+    
     pub fn render(&mut self, canvas: &mut Canvas) {
         canvas.save();
         canvas.translate(self.x, self.y);
@@ -121,6 +147,10 @@ impl ContentBox {
 
         for table in &self.tables {
             table.render(canvas);
+        }
+        
+        for _box in &mut self.content_boxes {
+            _box.render(canvas);
         }
         
         canvas.restore();
@@ -466,9 +496,9 @@ impl TableContent {
                     border.render(canvas);
                 } 
                 
-                let text_metrics = measure(cell, self.text_size);
-                let text_x = x_offset + (self.cell_width - text_metrics.width) / 2.0;
-                let text_y = y_offset + (self.cell_height - (text_metrics.descent - text_metrics.ascent));
+                // let text_metrics = measure(cell, self.text_size);
+                // let text_x = x_offset + (self.cell_width - text_metrics.width) / 2.0;
+                // let text_y = y_offset + (self.cell_height - (text_metrics.descent - text_metrics.ascent));
                 
                 let mut text_content = TextContent {
                     text: cell.clone(),
