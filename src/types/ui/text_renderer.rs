@@ -156,7 +156,7 @@ impl<'a> TextRenderer<'a> {
             }
 
             if shadow {
-                let offset = if text_size >= 25.0 { 2.5 } else { 2.0 };
+                let offset = if text_size >= 25.0 { 4.0 } else { 2.0 };
                 
                 let shadow_color = get_shadow(paint.color());
                 let mut shadow_paint = paint.clone();
