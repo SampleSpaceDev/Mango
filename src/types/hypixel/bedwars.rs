@@ -36,6 +36,13 @@ impl_ratios!(HypixelBedwarsOverall, HypixelBedwarsSolo, HypixelBedwarsDoubles, H
 pub struct HypixelBedwars {
     #[serde(rename = "Experience")]
     pub experience: f32,
+    #[serde(rename = "coins")]
+    pub tokens: u32,
+    
+    #[serde(rename = "games_played_bedwars")]
+    pub games_played: u32,
+    
+    pub slumber: HypixelBedwarsSlumber,
     
     #[serde(flatten)]
     pub overall: HypixelBedwarsOverall,
@@ -47,7 +54,6 @@ pub struct HypixelBedwars {
     pub threes: HypixelBedwarsThrees,
     #[serde(flatten)]
     pub fours: HypixelBedwarsFours,
-        
 }
 
 #[derive(Clone, Deserialize, Debug, Default)]
@@ -83,7 +89,6 @@ pub struct HypixelBedwarsOverall {
     #[serde(rename = "winstreak", default = "default_number")]
     pub winstreak: u32,
 }
-
 
 #[derive(Clone, Deserialize, Debug, Default)]
 pub struct HypixelBedwarsSolo {
@@ -224,11 +229,13 @@ pub struct HypixelBedwarsFours {
 #[derive(Clone, Deserialize, Debug, Default)]
 pub struct HypixelBedwarsDreams {}
 
-impl HypixelBedwars {
+#[derive(Clone, Deserialize, Debug, Default)]
+pub struct HypixelBedwarsSlumber {
+    #[serde(default = "default_number")]
+    pub tickets: u32,
     
-    pub fn calculate_star(&self) {
-        
-    }
+    #[serde(rename = "total_tickets_earned", default = "default_number")]
+    pub total_tickets: u32,
 }
 
 fn default_number() -> u32 {

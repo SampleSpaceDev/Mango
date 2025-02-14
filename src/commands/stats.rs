@@ -1,4 +1,5 @@
 use std::default::Default;
+use std::fmt::format;
 use std::time::Instant;
 use crate::types::ui::canvas::{Canvas};
 use crate::services::hypixel::HypixelService;
@@ -7,6 +8,7 @@ use crate::{Context, Error};
 use poise::CreateReply;
 use serenity::all::CreateAttachment;
 use skia_safe::{Color, Image};
+use skia_safe::color_filters::table;
 use tracing::error;
 use images::IRON_INGOT;
 use crate::services::render::PlayerRenderService;
@@ -87,7 +89,7 @@ pub async fn run(
         };
         
         let prestige_box = {
-            ContentBox::new(300.0, 100.0, 690.0, 80.0)
+            ContentBox::new(300.0, 100.0, 690.0, 60.0)
                 .with_background(default_background_color)
                 .with_border(default_border_color)
                 .add_text(
@@ -98,7 +100,7 @@ pub async fn run(
         };
         
         let projected_stats_box = {
-            let mut _box = ContentBox::new(300.0, 190.0, 690.0, 230.0)
+            let mut _box = ContentBox::new(300.0, 170.0, 690.0, 230.0)
                 .with_background(default_background_color)
                 .with_border(default_border_color)
                 .with_padding(20.0);
@@ -128,7 +130,7 @@ pub async fn run(
                             next_prestige_formatted,
                             num(projected_final_kills),
                             num(projected_final_kills - bedwars.overall.final_kills)),
-                    0.0, 34.0, 32.0)
+                    0.0, 36.0, 32.0)
                     .with_alignment(Alignment::Left)
                 )
                 .add_text(TextContent::new(
@@ -136,7 +138,7 @@ pub async fn run(
                             next_prestige_formatted,
                             num(projected_beds),
                             num(projected_beds - bedwars.overall.beds_broken)),
-                    0.0, 70.0, 32.0)
+                    0.0, 72.0, 32.0)
                     .with_alignment(Alignment::Left)
                 )
                 .add_text(TextContent::new(
@@ -144,7 +146,7 @@ pub async fn run(
                             next_prestige_formatted,
                             num(projected_wins),
                             num(projected_wins - bedwars.overall.wins)),
-                    0.0, 104.0, 32.0)
+                    0.0, 108.0, 32.0)
                     .with_alignment(Alignment::Left)
                 )
                 .add_text(TextContent::new(
@@ -152,114 +154,74 @@ pub async fn run(
                             next_prestige_formatted,
                             num(projected_fkdr),
                             num(projected_fkdr - bedwars.overall.fkdr())),
-                    0.0, 136.0, 32.0)
+                    0.0, 144.0, 32.0)
                     .with_alignment(Alignment::Left)
                 )
                 .add_text(TextContent::new(
                     "<gray>Note: this assumes no negative stats are taken.</gray>".to_string(),
-                        0.0, 5.0, 20.0)
+                        0.0, 10.0, 20.0)
                     .with_alignment(Alignment::Center)
                     .with_vertical_alignment(VerticalAlignment::Bottom)
                 )
         };
 
         let resources_box = {
-            ContentBox::new(10.0, 600.0, 280.0, 150.0)
+            ContentBox::new(300.0, 410.0, 280.0, 180.0)
                 .with_background(default_background_color)
                 .with_border(default_border_color)
-                .with_padding(10.0)
+                .with_padding(20.0)
                 // Iron
                 .add_image(ImageContent::new(IRON_INGOT.clone(), -2.0, 11.0, 16.0, 16.0).with_scale(2.0))
                 .add_text(TextContent::new(format!("<gray>{}</gray>", num(bedwars.overall.iron_collected)), 40.0, -3.0, 32.0))
                 // Gold
-                .add_image(ImageContent::new(GOLD_INGOT.clone(), -2.0, 46.0, 16.0, 16.0).with_scale(2.0))
-                .add_text(TextContent::new(format!("<yellow>{}</yellow>", num(bedwars.overall.gold_collected)), 40.0, 33.0, 32.0))
+                .add_image(ImageContent::new(GOLD_INGOT.clone(), -2.0, 49.0, 16.0, 16.0).with_scale(2.0))
+                .add_text(TextContent::new(format!("<yellow>{}</yellow>", num(bedwars.overall.gold_collected)), 40.0, 36.0, 32.0))
                 // Diamond
-                .add_image(ImageContent::new(DIAMOND.clone(), -2.0, 80.0, 16.0, 16.0).with_scale(2.0))
-                .add_text(TextContent::new(format!("<aqua>{}</aqua>", num(bedwars.overall.diamond_collected)), 40.0, 69.0, 32.0))
+                .add_image(ImageContent::new(DIAMOND.clone(), -2.0, 87.0, 16.0, 16.0).with_scale(2.0))
+                .add_text(TextContent::new(format!("<aqua>{}</aqua>", num(bedwars.overall.diamond_collected)), 40.0, 75.0, 32.0))
                 // Emerald
-                .add_image(ImageContent::new(EMERALD.clone(), -2.0, 118.0, 16.0, 16.0).with_scale(2.0))
-                .add_text(TextContent::new(format!("<dark_green>{}</dark_green>", num(bedwars.overall.emerald_collected)), 40.0, 105.0, 32.0))
+                .add_image(ImageContent::new(EMERALD.clone(), -2.0, 126.0, 16.0, 16.0).with_scale(2.0))
+                .add_text(TextContent::new(format!("<dark_green>{}</dark_green>", num(bedwars.overall.emerald_collected)), 40.0, 114.0, 32.0))
         };
 
         let misc_box = {
-            let _box = ContentBox::new(10.0, 760.0, 280.0, 230.0)
+            ContentBox::new(590.0, 410.0, 400.0, 180.0)
                 .with_background(default_background_color)
-                .with_border(default_border_color);
-
-            _box
+                .with_border(default_border_color)
+                .with_padding(20.0)
+                .add_text(TextContent::new(format!("<white>Tokens:</white> <dark_green>{}</dark_green>", num(bedwars.tokens)), 0.0, 0.0, 32.0))
+                .add_text(TextContent::new(format!("<white>Games Played:</white> <aqua>{}</aqua>", num(bedwars.games_played)), 0.0, 38.0, 32.0))
+                .add_text(TextContent::new(format!("<white>Slumber Tickets:</white> <aqua>{}</aqua>", num(bedwars.slumber.tickets)), 0.0, 76.0, 32.0))
+                .add_text(TextContent::new(format!("<white>Total Tickets:</white> <dark_aqua>{}</dark_aqua>", num(bedwars.slumber.total_tickets)), 0.0, 114.0, 32.0))
         };
 
         let stats_box = {
-            let kills_label = TextContent::new("<white>Kills</white>".to_string(), 0.0, 30.0, 16.0).with_alignment(Alignment::Center);
-            let finals_label = TextContent::new("<white>Finals</white>".to_string(), 0.0, 74.0, 16.0).with_alignment(Alignment::Center);
-            let beds_label = TextContent::new("<white>Beds</white>".to_string(), 0.0, 118.0, 16.0).with_alignment(Alignment::Center);
-            let wins_label = TextContent::new("<white>Wins</white>".to_string(), 0.0, 162.0, 16.0).with_alignment(Alignment::Center);
+            let table = TableContent::new(0.0, -4.0, 6, 160.0, 29.0)
+                .with_border_color(default_border_color.with_a(220))
+                .with_text_size(24.0)
+                .add_row(vec!["".to_string(), "<yellow>Overall</yellow>".to_string(), "<#ffe900>Solo</#ffe900>".to_string(), "<#ffd400>Doubles</#ffd400>".to_string(), "<#ffbf00>3v3v3v3</#ffbf00>".to_string(), "<gold>4v4v4v4</gold>".to_string()])
+                .add_row(vec!["<white>Kills</white>".to_string(), stat(bedwars.overall.kills, Positive), stat(bedwars.solo.kills, Positive), stat(bedwars.doubles.kills, Positive), stat(bedwars.threes.kills, Positive), stat(bedwars.fours.kills, Positive)])
+                .add_row(vec!["<#fff89b>Deaths</#fff89b>".to_string(), stat(bedwars.overall.deaths, Negative), stat(bedwars.solo.deaths, Negative), stat(bedwars.doubles.deaths, Negative), stat(bedwars.threes.deaths, Negative), stat(bedwars.fours.deaths, Negative)])
+                .add_row(vec!["<yellow>KDR</yellow>".to_string(), stat(bedwars.overall.kdr(), Ratio), stat(bedwars.solo.kdr(), Ratio), stat(bedwars.doubles.kdr(), Ratio), stat(bedwars.threes.kdr(), Ratio), stat(bedwars.fours.kdr(), Ratio)])
+                
+                .add_row(vec!["<white>Final Kills</white>".to_string(), stat(bedwars.overall.final_kills, Positive), stat(bedwars.solo.final_kills, Positive), stat(bedwars.doubles.final_kills, Positive), stat(bedwars.threes.final_kills, Positive), stat(bedwars.fours.final_kills, Positive)])
+                .add_row(vec!["<#b8f5ff>Final Deaths</#b8f5ff>".to_string(), stat(bedwars.overall.final_deaths, Negative), stat(bedwars.solo.final_deaths, Negative), stat(bedwars.doubles.final_deaths, Negative), stat(bedwars.threes.final_deaths, Negative), stat(bedwars.fours.final_deaths, Negative)])
+                .add_row(vec!["<aqua>FKDR</aqua>".to_string(), stat(bedwars.overall.fkdr(), Ratio), stat(bedwars.solo.fkdr(), Ratio), stat(bedwars.doubles.fkdr(), Ratio), stat(bedwars.threes.fkdr(), Ratio), stat(bedwars.fours.fkdr(), Ratio)])
+                
+                .add_row(vec!["<white>Beds Broken</white>".to_string(), stat(bedwars.overall.beds_broken, Positive), stat(bedwars.solo.beds_broken, Positive), stat(bedwars.doubles.beds_broken, Positive), stat(bedwars.threes.beds_broken, Positive), stat(bedwars.fours.beds_broken, Positive)])
+                .add_row(vec!["<#ff9da6>Beds Lost</#ff9da6>".to_string(), stat(bedwars.overall.beds_lost, Negative), stat(bedwars.solo.beds_lost, Negative), stat(bedwars.doubles.beds_lost, Negative), stat(bedwars.threes.beds_lost, Negative), stat(bedwars.fours.beds_lost, Negative)])
+                .add_row(vec!["<red>BBLR</red>".to_string(), stat(bedwars.overall.bblr(), Ratio), stat(bedwars.solo.bblr(), Ratio), stat(bedwars.doubles.bblr(), Ratio), stat(bedwars.threes.bblr(), Ratio), stat(bedwars.fours.bblr(), Ratio)])
+                
+                .add_row(vec!["<white>Wins</white>".to_string(), stat(bedwars.overall.wins, Positive), stat(bedwars.solo.wins, Positive), stat(bedwars.doubles.wins, Positive), stat(bedwars.threes.wins, Positive), stat(bedwars.fours.wins, Positive)])
+                .add_row(vec!["<#ffa5e7>Losses</#ffa5e7>".to_string(), stat(bedwars.overall.losses, Negative), stat(bedwars.solo.losses, Negative), stat(bedwars.doubles.losses, Negative), stat(bedwars.threes.losses, Negative), stat(bedwars.fours.losses, Negative)])
+                .add_row(vec!["<light_purple>WLR</light_purple>".to_string(), stat(bedwars.overall.wlr(), Ratio), stat(bedwars.solo.wlr(), Ratio), stat(bedwars.doubles.wlr(), Ratio), stat(bedwars.threes.wlr(), Ratio), stat(bedwars.fours.wlr(), Ratio)]);
             
-            let overall_stats_box = {
-                ContentBox::new(0.0, 0.0, 216.0, 265.0)
-                    .with_border(default_border_color)
-                    .with_padding(10.0)
-                    
-                    .add_text(TextContent::new("<yellow>Overall</yellow>".to_string(), 0.0, 0.0, 24.0)
-                        .with_alignment(Alignment::Center)) // Header
-
-                    .add_text(kills_label) // Kills label
-                    .add_text(TextContent::new(stats_line((bedwars.overall.kills, bedwars.overall.deaths, bedwars.overall.kdr())), 0.0, 50.0, 24.0)
-                        .with_alignment(Alignment::Center)) // Kill amounts
-
-                    .add_text(finals_label) // Final kills label
-                    .add_text(TextContent::new(stats_line((bedwars.overall.final_kills, bedwars.overall.final_deaths, bedwars.overall.fkdr())), 0.0, 94.0, 24.0)
-                        .with_alignment(Alignment::Center)) // Final kill amounts
-
-                    .add_text(beds_label) // Beds label
-                    .add_text(TextContent::new(stats_line((bedwars.overall.beds_broken, bedwars.overall.beds_lost, bedwars.overall.bblr())), 0.0, 139.0, 24.0)
-                        .with_alignment(Alignment::Center)) // Bed amounts
-
-                    .add_text(wins_label) // Wins label
-                    .add_text(TextContent::new(stats_line((bedwars.overall.wins, bedwars.overall.losses, bedwars.overall.wlr())), 0.0, 183.0, 24.0)
-                        .with_alignment(Alignment::Center)) // Win amounts
-            };
-            let solo_stats_box = {
-                ContentBox::new(227.0, 0.0, 216.0, 265.0)
-                    .with_border(default_border_color)
-                    .with_padding(10.0)
-                    .add_text(TextContent::new("<#ffe900>Solo</#ffe900>".to_string(), 0.0, 0.0, 24.0)
-                        .with_alignment(Alignment::Center))
-            };
-            let doubles_stats_box = {
-                ContentBox::new(453.0, 0.0, 216.0, 265.0)
-                    .with_border(default_border_color)
-                    .with_padding(10.0)
-                    .add_text(TextContent::new("<#ffd400>Doubles</#ffd400>".to_string(), 0.0, 0.0, 24.0)
-                        .with_alignment(Alignment::Center))
-            };
-            let threes_stats_box = {
-                ContentBox::new(124.0, 275.0, 216.0, 265.0)
-                    .with_border(default_border_color)
-                    .with_padding(10.0)
-                    .add_text(TextContent::new("<#ffbf00>3v3v3v3</#ffbf00>".to_string(), 0.0, 0.0, 24.0)
-                        .with_alignment(Alignment::Center))
-            };
-            let fours_stats_box = {
-                ContentBox::new(350.0, 275.0, 216.0, 265.0)
-                    .with_border(default_border_color)
-                    .with_padding(10.0)
-                    .add_text(TextContent::new("<gold>4v4v4v4</gold>".to_string(), 0.0, 0.0, 24.0)
-                        .with_alignment(Alignment::Center))
-            };
-            
-            ContentBox::new(300.0, 430.0, 690.0, 560.0)
+            ContentBox::new(10.0, 600.0, 980.0, 390.0)
                 .with_background(default_background_color)
                 .with_border(default_border_color)
                 .with_padding(10.0)
-                .add_content_boxes(vec![overall_stats_box, solo_stats_box, doubles_stats_box, threes_stats_box, fours_stats_box])
+                .add_table(table)
         };
-
-        fn stats_line(values: (u32, u32, f32)) -> String {
-            let (pos, neg, ratio) = (num(values.0), num(values.1), num(values.2));
-            format!("<green>{pos}</green> • <red>{neg}</red> • <gold>{ratio}</gold>", )
-        }
         
         canvas.render_content_boxes(vec![
             title_box,
